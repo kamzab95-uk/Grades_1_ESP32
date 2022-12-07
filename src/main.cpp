@@ -8,9 +8,6 @@
 #include <BLEServer.h>
 #include <BLE2902.h>
 
-#define MESSAGE_SERVICE_UUID "ab0828b1-198e-4351-b779-901fa0e0371e"
-#define MESSAGE_CHARACTERISTICS_UUID "4ac8a682-9736-4e5d-932b-e9b31405049c"
-
 #define THERMOMETER_SERVICE_UUID "d6592058-01c0-46ef-8154-dc6075fd3318"
 #define THERMOMETER_CHARACTERISTICS_UUID "921a9481-2e23-43cf-9b13-b9a7c9378236"
 
@@ -26,8 +23,6 @@ BLECharacteristic *characteristicMessage;
 BLECharacteristic *characteristicThermometer;
 
 BLEAdvertising *advertisement;
-
-// BLEDescriptor thermometerDescriptor(BLEUUID((uint16_t)0x2902));
 
 using namespace std;
 
@@ -49,20 +44,6 @@ class MyServerCallbacks : public BLEServerCallbacks
     }
 };
 
-class MessageCallbacks : public BLECharacteristicCallbacks
-{
-    void onWrite(BLECharacteristic *characteristic)
-    {
-        std::string data = characteristic->getValue();
-        Serial.println(data.c_str());
-    }
-
-    void onRead(BLECharacteristic *characteristic)
-    {
-        characteristic->setValue("Foobar");
-    }
-};
-
 void setup()
 {
     Serial.begin(9600);
@@ -73,13 +54,7 @@ void setup()
     BLEServer *server = BLEDevice::createServer();
     server->setCallbacks(new MyServerCallbacks());
 
-    BLEService *service; // = server->createService(MESSAGE_SERVICE_UUID);
-
-    // Register message service that can receive messages and reply with a static message.
-    // characteristicMessage = service->createCharacteristic(MESSAGE_CHARACTERISTICS_UUID, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY | BLECharacteristic::PROPERTY_WRITE);
-    // characteristicMessage->setCallbacks(new MessageCallbacks());
-    // characteristicMessage->addDescriptor(new BLE2902());
-    // service->start();
+    BLEService *service; 
 
     // Registher thermometer service
     service = server->createService(THERMOMETER_SERVICE_UUID);
@@ -105,13 +80,9 @@ void setup()
     BLEAdvertisementData adv;
     adv.setName(DEVICE_NAME);
     adv.setCompleteServices(BLEUUID(THERMOMETER_SERVICE_UUID));
-    // adv.setCompleteServices(BLEUUID(MESSAGE_SERVICE_UUID));
     advertisement->setAdvertisementData(adv);
 
-    advertisement->addServiceUUID((uint16_t)0x1101); 
-    // advertisement->addServiceUUID((uint16_t)0x1812); // iOS fix
-    // advertisement->addServiceUUID((uint16_t)0x181A);
-   
+    advertisement->addServiceUUID((uint16_t)0x1101);
 
     advertisement->start();
 
@@ -121,19 +92,15 @@ void setup()
 int loopCounter = 0;
 void loop()
 {
-    // String message = "Loop " + String(loopCounter);
-    // Serial.println(message);
     loopCounter += 1;
 
     if (deviceConnected) {
         String temperature = String(loopCounter);
         string value = temperature.c_str();
-        //Set temperature Characteristic value and notify connected client
         characteristicThermometer->setValue(value);
         characteristicThermometer->notify();
-        Serial.print("Temperature Celsius: ");
-        Serial.print(temperature);
-        Serial.print(" ºC\n\r");
+
+        Serial.println("characteristicThermometer -> setValue " + temperature);
     } else {
         Serial.println("Device not connected");
     }
