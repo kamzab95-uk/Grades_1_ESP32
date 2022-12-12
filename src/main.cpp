@@ -2,11 +2,14 @@
 #include <string>
 #include <locale>
 #include <codecvt>
+#include <random>
 
 #include <BLEDevice.h>
 #include <BLEUtils.h>
 #include <BLEServer.h>
 #include <BLE2902.h>
+
+#include "UniformRandom.cpp"
 
 #define THERMOMETER_SERVICE_UUID "d6592058-01c0-46ef-8154-dc6075fd3318"
 #define THERMOMETER_CHARACTERISTICS_UUID "921a9481-2e23-43cf-9b13-b9a7c9378236"
@@ -23,6 +26,8 @@ BLECharacteristic *characteristicMessage;
 BLECharacteristic *characteristicThermometer;
 
 BLEAdvertising *advertisement;
+
+UniformRandom unformRandom(10, 40);
 
 using namespace std;
 
@@ -89,13 +94,13 @@ void setup()
     Serial.println("Ready");
 }
 
-int loopCounter = 0;
+
 void loop()
 {
-    loopCounter += 1;
-
     if (deviceConnected) {
-        String temperature = String(loopCounter);
+        
+        int randomValue = unformRandom.generate();
+        String temperature = String(randomValue);
         string value = temperature.c_str();
         characteristicThermometer->setValue(value);
         characteristicThermometer->notify();
@@ -107,3 +112,4 @@ void loop()
 
     delay(1000);
 }
+
