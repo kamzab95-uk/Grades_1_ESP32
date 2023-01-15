@@ -49,6 +49,45 @@ class MyServerCallbacks : public BLEServerCallbacks
     }
 };
 
+class MySecurity : public BLESecurityCallbacks {
+  
+  bool onConfirmPIN(uint32_t pin){
+    Serial.println("onConfirmPIN");
+    return true;
+  }
+  
+  uint32_t onPassKeyRequest(){
+    Serial.println("onPassKeyRequest");
+        ESP_LOGI(LOG_TAG, "PassKeyRequest");
+    return 133700;
+  }
+
+  void onPassKeyNotify(uint32_t pass_key){
+    Serial.println("onPassKeyNotify");
+        ESP_LOGI(LOG_TAG, "On passkey Notify number:%d", pass_key);
+  }
+
+  bool onSecurityRequest(){
+    Serial.println("onSecurityRequest");
+      ESP_LOGI(LOG_TAG, "On Security Request");
+    return true;
+  }
+
+  void onAuthenticationComplete(esp_ble_auth_cmpl_t cmpl){
+    Serial.println("onAuthenticationComplete");
+    ESP_LOGI(LOG_TAG, "Starting BLE work!");
+    if(cmpl.success){
+      Serial.println("onAuthenticationComplete -> success");
+      uint16_t length;
+      esp_ble_gap_get_whitelist_size(&length);
+      ESP_LOGD(LOG_TAG, "size: %d", length);
+    }
+    else{
+      Serial.println("onAuthenticationComplete -> fail");
+    }
+  }
+};
+
 void setup()
 {
     Serial.begin(9600);
@@ -56,6 +95,9 @@ void setup()
 
     // Setup BLE Server
     BLEDevice::init(DEVICE_NAME);
+    BLEDevice::setEncryptionLevel(ESP_BLE_SEC_ENCRYPT);
+
+    BLEDevice::setSecurityCallbacks(new MySecurity());
     BLEServer *server = BLEDevice::createServer();
     server->setCallbacks(new MyServerCallbacks());
 
