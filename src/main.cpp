@@ -14,6 +14,9 @@
 #define THERMOMETER_SERVICE_UUID "d6592058-01c0-46ef-8154-dc6075fd3318"
 #define THERMOMETER_CHARACTERISTICS_UUID "921a9481-2e23-43cf-9b13-b9a7c9378236"
 
+#define SECURE_SERVICE_UUID "457ef7b4-48db-4325-b2d1-2e6155c506a5"
+#define SECURE_CHARACTERISTICS_UUID "048d5eb8-831c-47c8-995b-cc7fa10b65cb"
+
 #define DEVINFO_UUID (uint16_t)0x180a
 #define DEVINFO_MANUFACTURER_UUID (uint16_t)0x2a29
 #define DEVINFO_NAME_UUID (uint16_t)0x2a24
@@ -24,6 +27,7 @@
 
 BLECharacteristic *characteristicMessage;
 BLECharacteristic *characteristicThermometer;
+BLECharacteristic *characteristicSecure;
 
 BLEAdvertising *advertisement;
 
@@ -95,7 +99,7 @@ void setup()
 
     // Setup BLE Server
     BLEDevice::init(DEVICE_NAME);
-    BLEDevice::setEncryptionLevel(ESP_BLE_SEC_ENCRYPT);
+    // BLEDevice::setEncryptionLevel(ESP_BLE_SEC_ENCRYPT);
 
     BLEDevice::setSecurityCallbacks(new MySecurity());
     BLEServer *server = BLEDevice::createServer();
@@ -105,10 +109,25 @@ void setup()
 
     // Registher thermometer service
     service = server->createService(THERMOMETER_SERVICE_UUID);
+
+    // Register thermometer characteristic
     characteristicThermometer = service->createCharacteristic(THERMOMETER_CHARACTERISTICS_UUID, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY);
     BLEDescriptor *thermometerDescriptor = new BLE2902();//(BLEUUID((uint16_t)0x2902));
     thermometerDescriptor->setValue("Temperature descriptor");
     characteristicThermometer->addDescriptor(thermometerDescriptor);
+
+    service->start();
+
+    // Registher secure service
+    service = server->createService(SECURE_SERVICE_UUID);
+
+    // Register secure characteristic
+    characteristicSecure = service->createCharacteristic(SECURE_CHARACTERISTICS_UUID, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY);
+    BLEDescriptor *secureDescriptor = new BLE2902();
+    secureDescriptor->setValue("Temperature descriptor");
+    characteristicSecure->addDescriptor(secureDescriptor);
+    characteristicSecure->setAccessPermissions(ESP_GATT_PERM_READ_ENCRYPTED | ESP_GATT_PERM_WRITE_ENCRYPTED); 
+
     service->start();
 
     // Register device info service, that contains the device's UUID, manufacturer and name.
@@ -127,11 +146,19 @@ void setup()
     BLEAdvertisementData adv;
     adv.setName(DEVICE_NAME);
     adv.setCompleteServices(BLEUUID(THERMOMETER_SERVICE_UUID));
+    adv.setCompleteServices(BLEUUID(SECURE_SERVICE_UUID));
     advertisement->setAdvertisementData(adv);
 
     advertisement->addServiceUUID((uint16_t)0x1101);
 
     advertisement->start();
+
+    Serial.println("Enable security");
+
+    // BLESecurity *pSecurity = new BLESecurity();
+    // pSecurity->setAuthenticationMode(ESP_LE_AUTH_REQ_SC_MITM_BOND);
+    // pSecurity->setCapability(ESP_IO_CAP_OUT);
+    // pSecurity->setInitEncryptionKey(ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK);
 
     Serial.println("Ready");
 }
@@ -141,13 +168,13 @@ void loop()
 {
     if (deviceConnected) {
         
-        int randomValue = unformRandom.generate();
+        int randomValue = 1;//unformRandom.generate();
         String temperature = String(randomValue);
         string value = temperature.c_str();
         characteristicThermometer->setValue(value);
         characteristicThermometer->notify();
 
-        Serial.println("characteristicThermometer -> setValue " + temperature);
+        // Serial.println("characteristicThermometer -> setValue " + temperature);
     } else {
         Serial.println("Device not connected");
     }
